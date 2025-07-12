@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Governor Theorems</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .theorem-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .theorem-box {
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .theorem-1 {
+            background: #e8f4fd;
+            border-left: 4px solid #2563eb;
+        }
+        .theorem-2 {
+            background: #f0f9ff;
+            border-left: 4px solid #0891b2;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f1f3f4;
+            border-radius: 8px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .visibility-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-weight: bold;
+            color: #333;
+            font-size: 12px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        .value-display {
+            font-family: monospace;
+            color: #2563eb;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .status-panel {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .status-item {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #0c5460;
+        }
+        .legend {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .legend-section {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Combined Theorems: Equilibrium Structure in σ-z Space</h1>
+        
+        <div class="theorem-comparison">
+            <div class="theorem-box theorem-1">
+                <strong>Theorem 1 - No Governor (p = 0):</strong>
+                <br>If fine level feasible (0 ≤ z ≤ (N-k)/k), then g*(X,0,σ) is SPE where:
+                <br><strong>(a)</strong> g* = k if reputation high (σ ≥ k)
+                <br><strong>(b)</strong>  = 0 if reputation low (σ ≤ k)
+            </div>
+            <div class="theorem-box theorem-2">
+                <strong>Theorem 2 - With Governor (p = 1):</strong>
+                <br><strong>(a)</strong> If σ ≥ N and aN > 1: g* = N if X = N, g* = 0 if X < N
+                <br><strong>(b)</strong> If σ ≤ N and z ≥ (N-k)/k: g* = 0 always
+            </div>
+        </div>
+
+        <div class="visibility-controls">
+            <strong>Show Equilibrium Regions:</strong>
+            <div class="checkbox-group">
+                <input type="checkbox" id="show-no-governor" checked>
+                <label for="show-no-governor">Theorem 1 (p=0)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="show-governor" checked>
+                <label for="show-governor">Theorem 2 (p=1)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="show-boundaries" checked>
+                <label for="show-boundaries">Boundary Lines</label>
+            </div>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-item">Parameters: <span id="current-params" class="highlight"></span></div>
+            <div class="status-item">Key thresholds: <span id="thresholds" class="highlight"></span></div>
+            <div class="status-item">Theorem 2(a) applies: <span id="theorem2a-status" class="highlight"></span></div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="N">N (Total players):</label>
+                <input type="range" id="N" min="5" max="20" value="10" step="1">
+                <span class="value-display" id="N-value">10</span>
+            </div>
+            <div class="control-group">
+                <label for="k">k (Threshold):</label>
+                <input type="range" id="k" min="1" max="8" value="3" step="1">
+                <span class="value-display" id="k-value">3</span>
+            </div>
+            <div class="control-group">
+                <label for="a">a (MPCR/Benefit of public good):</label>
+                <input type="range" id="a" min="0.1" max="1.5" value="0.5" step="0.1">
+                <span class="value-display" id="a-value">0.5</span>
+            </div>
+            <div class="control-group">
+                <label for="sigma-max">σ range (Reputation):</label>
+                <input type="range" id="sigma-max" min="10" max="25" value="18" step="1">
+                <span class="value-display" id="sigma-max-value">0 to 18</span>
+            </div>
+            <div class="control-group">
+                <label for="z-max">z range (Fine level):</label>
+                <input type="range" id="z-max" min="5" max="15" value="10" step="1">
+                <span class="value-display" id="z-max-value">0 to 10</span>
+            </div>
+        </div>
+
+        <div id="plot"></div>
+
+        <div class="legend">
+            <div class="legend-section">
+                <div class="section-title">Theorem 1 (p = 0)</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(139, 0, 0, 0.7);"></div>
+                    <span><strong>Part (a) g* = 0:</strong> Low reputation (σ ≤ k), feasible fines</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></div>
+                    <span><strong> Part(b) g* = k:</strong> High reputation (σ ≥ k), feasible fines</span>
+                </div>
+            </div>
+            <div class="legend-section">
+                <div class="section-title">Theorem 2 (p = 1)</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(135, 206, 250, 0.8); border-style: dashed;"></div>
+                    <span><strong>Part (a):</strong> All-or-nothing (σ ≥ N and aN > 1)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(138, 43, 226, 0.8); border-style: dashed;"></div>
+                    <span><strong>Part (b):</strong> No contribution (σ ≤ N and z ≥ (N-k)/k)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(149, 165, 166, 0.5);"></div>
+                    <span><strong>Other regions:</strong> Not covered by either theorem</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    function updatePlot() {
+        const N = parseInt(document.getElementById('N').value);
+        const k = parseInt(document.getElementById('k').value);
+        const a = parseFloat(document.getElementById('a').value);
+        const sigmaMax = parseInt(document.getElementById('sigma-max').value);
+        const zMax = parseInt(document.getElementById('z-max').value);
+
+        const showNoGov = document.getElementById('show-no-governor').checked;
+        const showGov = document.getElementById('show-governor').checked;
+        const showBoundaries = document.getElementById('show-boundaries').checked;
+
+        // Update displays
+        document.getElementById('N-value').textContent = N;
+        document.getElementById('k-value').textContent = k;
+        document.getElementById('a-value').textContent = a;
+        document.getElementById('sigma-max-value').textContent = `0 to ${sigmaMax}`;
+        document.getElementById('z-max-value').textContent = `0 to ${zMax}`;
+
+        // Calculate key thresholds
+        const zThreshold = (N - k) / k;
+        const aNThreshold = a * N;
+
+        // Update status
+        document.getElementById('current-params').textContent = `N=${N}, k=${k}, MPCR=${a}`;
+        document.getElementById('thresholds').textContent = `Fine threshold=${zThreshold.toFixed(2)}, MPCR×N=${aNThreshold.toFixed(2)}, Rep. critical=${k}, Rep. gov=${N}`;
+
+        const theorem2aApplies = aNThreshold > 1 ? "Yes (aN > 1)" : "No (aN ≤ 1)";
+        document.getElementById('theorem2a-status').textContent = theorem2aApplies;
+
+        const traces = [];
+        const shapes = [];
+
+        // ===== 1. DEFINE REGIONS AS SOLID SHAPES =====
+        
+        if (showGov) {
+            shapes.push({
+                 type: 'rect', 
+                 x0: N, y0: 0, x1: sigmaMax, y1: zThreshold,
+                 fillcolor: 'rgba(149, 165, 166, 0.5)', line: {width: 0}, layer: 'below'
+            });
+            shapes.push({
+                 type: 'rect', 
+                 x0: 0, y0: 0, x1: N, y1: zThreshold,
+                 fillcolor: 'rgba(149, 165, 166, 0.5)', line: {width: 0}, layer: 'below'
+            });
+        }
+
+        if (showNoGov) {
+            shapes.push({
+                type: 'rect', x0: 0, y0: 0, x1: k, y1: Math.min(zThreshold, zMax),
+                fillcolor: 'rgba(139, 0, 0, 0.7)', line: {width: 0}, layer: 'below'
+            });
+            shapes.push({
+                type: 'rect', x0: k, y0: 0, x1: sigmaMax, y1: Math.min(zThreshold, zMax),
+                fillcolor: 'rgb(255, 182, 193)',
+                pattern: {
+                    shape: '\\',
+                    fgcolor: 'rgb(239, 68, 68)',
+                    solidity: 0.4
+                },
+                line: {width: 0}, 
+                layer: 'below'
+            });
+        }
+
+        if (showGov) {
+             shapes.push({
+                type: 'rect', x0: 0, y0: zThreshold, x1: N, y1: zMax,
+                fillcolor: 'rgba(138, 43, 226, 0.8)', line: {width: 0}, layer: 'below',
+            });
+            if (aNThreshold > 1) {
+                shapes.push({
+                    type: 'rect', x0: N, y0: 0, x1: sigmaMax, y1: zMax,
+                    fillcolor: 'rgba(135, 206, 250, 0.5)', 
+                    line: {width: 0}, 
+                    layer: 'below'
+                });
+            }
+        }
+
+        // ===== 2. DRAW BOUNDARY LINES =====
+        if (showBoundaries) {
+            traces.push({
+                x: [k, k], y: [0, zMax], mode: 'lines', type: 'scatter',
+                line: { color: 'rgba(171, 99, 250, 0.9)', width: 3, dash: 'solid' },
+                name: `σ = k = ${k}`, hoverinfo: 'none'
+            });
+            traces.push({
+                x: [N, N], y: [0, zMax], mode: 'lines', type: 'scatter',
+                line: { color: 'rgba(155, 89, 182, 0.9)', width: 3, dash: 'dot' },
+                name: `σ = N = ${N}`, hoverinfo: 'none'
+            });
+            traces.push({
+                x: [0, sigmaMax], y: [zThreshold, zThreshold], mode: 'lines', type: 'scatter',
+                line: { color: 'rgba(255, 193, 7, 0.9)', width: 3, dash: 'dashdot' },
+                name: `z = (N-k)/k = ${zThreshold.toFixed(2)}`, hoverinfo: 'none'
+            });
+        }
+
+        // ===== 3. CREATE DUMMY TRACES FOR THE LEGEND =====
+        const legendTraces = [
+            { name: 'T1(a): g* = 0', color: 'rgba(139, 0, 0, 0.7)', symbol: 'square', visible: showNoGov },
+            { name: `T1(b): g* = ${k} (striped)`, color: 'rgba(255, 182, 193, 0.8)', symbol: 'square', visible: showNoGov },
+            { name: 'T2(a): All-or-nothing', color: 'rgba(135, 206, 250, 0.8)', symbol: 'diamond', visible: showGov && aNThreshold > 1 },
+            { name: 'T2(b): g* = 0', color: 'rgba(138, 43, 226, 0.8)', symbol: 'diamond', visible: showGov },
+            { name: 'T2: Not covered', color: 'rgba(149, 165, 166, 0.5)', symbol: 'diamond', visible: showGov }
+        ];
+
+        legendTraces.forEach(lt => {
+            if (lt.visible) {
+                 traces.push({
+                    x: [null], y: [null],
+                    mode: 'markers', type: 'scatter',
+                    name: lt.name,
+                    marker: { color: lt.color, symbol: lt.symbol, size: 10 }
+                });
+            }
+        });
+
+        // ===== 4. DEFINE LAYOUT AND ANNOTATIONS =====
+        const layout = {
+            title: {
+                text: `Equilibrium Comparison: Theorem 1 vs Theorem 2 (N=${N}, k=${k}, a=${a})`,
+                font: { size: 16 }
+            },
+            xaxis: { title: 'σ (Governor\'s Reputation Parameter)', range: [0, sigmaMax], gridcolor: '#f0f0f0' },
+            yaxis: { title: 'z (Fine for Shirking/Evading)', range: [0, zMax], gridcolor: '#f0f0f0' },
+            plot_bgcolor: 'white',
+            paper_bgcolor: 'white',
+            showlegend: true,
+            legend: {
+                x: 1.02, y: 1, bgcolor: 'rgba(255,255,255,0.95)', font: { size: 10 }
+            },
+            shapes: shapes,
+            margin: { r: 180 },
+
+            // -- THIS IS THE NEWLY ADDED SECTION --
+            annotations: [
+                {
+                    x: k / 2,
+                    y: Math.min(zThreshold, zMax) * 0.5,
+                    text: `T1(a)<br>g*=0`,
+                    showarrow: false,
+                    font: { size: 12, color: 'white' },
+                    bgcolor: 'rgba(0,0,0,0.3)',
+                    borderpad: 4,
+                    visible: showNoGov
+                },
+                {
+                    x: k + (sigmaMax-k)/2,
+                    y: Math.min(zThreshold, zMax) * 0.5,
+                    text: `T1(b)<br>g*=${k}`,
+                    showarrow: false,
+                    font: { size: 12, color: 'black' },
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                    borderpad: 4,
+                    visible: showNoGov
+                },
+                {
+                    x: N + (sigmaMax - N) / 2,
+                    y: zMax * 0.5,
+                    text: `T2(a)<br>All-or-nothing`,
+                    showarrow: false,
+                    font: { size: 12, color: 'black' },
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                    borderpad: 4,
+                    visible: showGov && aNThreshold > 1
+                },
+                {
+                    x: N / 2,
+                    y: zThreshold + (zMax - zThreshold) / 2,
+                    text: `T2(b)<br>g*=0`,
+                    showarrow: false,
+                    font: { size: 12, color: 'white' },
+                    bgcolor: 'rgba(0,0,0,0.3)',
+                    borderpad: 4,
+                    visible: showGov
+                }
+            ]
+        };
+
+        Plotly.newPlot('plot', traces, layout, {responsive: true});
+    }
+
+    // Add event listeners
+    ['N', 'k', 'a', 'sigma-max', 'z-max'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updatePlot);
+    });
+    
+    ['show-no-governor', 'show-governor', 'show-boundaries'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updatePlot);
+    });
+    
+    // Initial plot
+    updatePlot();
+</script>
+</body>
+</html>
